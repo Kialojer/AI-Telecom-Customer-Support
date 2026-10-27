@@ -1,5 +1,9 @@
 """LangGraph multi-agent routing for a fictional telecom support portfolio.
 
+kiarash torabi.n
+27/10/2026
+
+
 No LLM, embedding API, vector database, PostgreSQL connection, or outbound
 WhatsApp sender is invoked. The rule-based router explicitly simulates the
 classification step so reviewers can understand the orchestration.
@@ -7,11 +11,8 @@ classification step so reviewers can understand the orchestration.
 
 from typing import Annotated, Any, Literal, TypedDict
 import operator
-
 from langgraph.graph import END, START, StateGraph
-
 Intent = Literal["greeting", "technical", "billing", "sales", "human"]
-
 
 class CustomerContext(TypedDict):
     """Authenticated in a real system; supplied as synthetic demo input here."""
@@ -24,25 +25,22 @@ class CustomerContext(TypedDict):
     preferences: list[str]
     memory_summary: str
 
-
 class OfferContext(TypedDict):
     offer_id: str
     title: str
     description: str
     segment: str
 
-
 class AgentState(TypedDict, total=False):
     message: str
     mode: Literal["inbound", "campaign_preview"]
-    customer: CustomerContext  # Preloaded by FastAPI; nodes never query the database.
-    offers: list[OfferContext]  # Small CAG-inspired curated catalog.
+    customer: CustomerContext  #
+    offers: list[OfferContext]  
     intent: Intent
     answer: str
     handoff: bool
-    memory_update_preview: str  # Not persisted or embedded.
-    trace: Annotated[list[str], operator.add]  # LangGraph reducer accumulates node names.
-
+    memory_update_preview: str  
+    trace: Annotated[list[str], operator.add]  
 
 def classify(state: AgentState) -> dict[str, Any]:
     """Deterministic stand-in for an LLM intent classifier."""
@@ -51,21 +49,19 @@ def classify(state: AgentState) -> dict[str, Any]:
 
     text = state["message"].casefold()
     keywords: tuple[tuple[Intent, tuple[str, ...]], ...] = (
-        ("human", ("humano", "atendente", "pessoa real", "cancelar", "reclamação", "reclamacao", "human")),
-        ("billing", ("fatura", "boleto", "cobrança", "cobranca", "pagamento", "vencimento", "invoice", "bill")),
-        ("sales", ("oferta", "promoção", "promocao", "desconto", "plano novo", "upgrade", "offer")),
-        ("technical", ("internet", "wifi", "wi-fi", "sinal", "velocidade", "lenta", "lento", "instalação", "instalacao", "speed")),
-        ("greeting", ("olá", "ola", "oi", "bom dia", "boa tarde", "hello", "hi")),
+        ("human", ("humano", "atendente", "pessoa real")),
+        ("billing", ("fatura", "boleto", "cobrança")),
+        ("sales", ("oferta", "promoção", "promocao")),
+        ("technical", ("internet", "wifi", "wi-fi", "sinal")),
+        ("greeting", ("olá", "ola", "oi", "bom dia")),
     )
     for intent, terms in keywords:
         if any(term in text for term in terms):
             return {"intent": intent, "trace": ["classify"]}
-    return {"intent": "human", "trace": ["classify"]}  # Unknown intent -> safe simulated escalation.
-
+    return {"intent": "human", "trace": ["classify"]} 
 
 def route(state: AgentState) -> Intent:
     return state["intent"]
-
 
 def greeting_agent(state: AgentState) -> dict[str, Any]:
     return {
@@ -73,7 +69,6 @@ def greeting_agent(state: AgentState) -> dict[str, Any]:
         "handoff": False,
         "trace": ["greeting"],
     }
-
 
 def technical_agent(state: AgentState) -> dict[str, Any]:
     context = state["customer"]["memory_summary"]
@@ -94,49 +89,33 @@ def billing_agent(state: AgentState) -> dict[str, Any]:
         return {
             "answer": "Para consultar valores, preciso de autenticação. Posso encaminhar ao atendimento humano (simulação).",
             "handoff": True,
-            "trace": ["billing"],
-        }
+            "trace": ["billing"],}
     amount = customer["invoice_amount_brl"]
     return {
-        "answer": (
-            f"Sua fatura fictícia é de R$ {amount:.2f} no plano {customer['plan_name']}. "
-            "Não é uma cobrança real e nenhum boleto foi emitido."
-        ),
+        "answer": (f"Sua fatura fictícia é de R$ {amount:.2f} no plano {customer['plan_name']}. ""Não é uma cobrança real e nenhum boleto foi emitido."),
         "handoff": False,
         "trace": ["billing"],
     }
-
 
 def sales_agent(state: AgentState) -> dict[str, Any]:
     customer = state["customer"]
     if state.get("mode") == "campaign_preview" and not customer["marketing_opt_in"]:
         return {"answer": "Sem envio: cliente não autorizou marketing.", "handoff": False, "trace": ["sales"]}
-
     matches = [
         offer for offer in state["offers"]
-        if offer["segment"] in customer["preferences"]
-    ]
+        if offer["segment"] in customer["preferences"]]
     if not matches:
         return {"answer": "Ainda não tenho uma oferta adequada ao seu perfil.", "handoff": False, "trace": ["sales"]}
     chosen = matches[0]
     return {
-        "answer": (
-            f"Uma opção que combina com seu interesse é: {chosen['title']}. "
-            f"{chosen['description']} Esta é apenas uma prévia, sem envio comercial."
-        ),
-        "handoff": False,
-        "trace": ["sales"],
-    }
-
-
+        "answer": ( f"Uma opção que combina com seu interesse é: {chosen['title']}. "f"{chosen['description']} Esta é apenas uma prévia, sem envio comercial."
+        ),"handoff": False,
+        "trace": ["sales"] }
 def human_agent(state: AgentState) -> dict[str, Any]:
     return {
         "answer": "Posso encaminhar sua solicitação para um atendente. Nesta demonstração, nenhum chamado real é criado.",
         "handoff": True,
-        "trace": ["human"],
-    }
-
-
+        "trace": ["human"]}
 def review_response(state: AgentState) -> dict[str, Any]:
     """Minimal safety/quality gate; not a substitute for production validation."""
     answer = state.get("answer", "").strip()
@@ -152,7 +131,6 @@ def review_response(state: AgentState) -> dict[str, Any]:
         "memory_update_preview": memory_preview,
         "trace": ["review"],
     }
-
 
 def build_graph():
     builder = StateGraph(AgentState)
@@ -175,7 +153,4 @@ def build_graph():
     builder.add_edge("review", END)
     return builder.compile()
 
-
-# Compiled graph supports invoke(), stream() and ainvoke().
-# The public demo endpoint calls invoke() with one preloaded fictional profile.
 AGENT_GRAPH = build_graph()
