@@ -111,77 +111,7 @@ This distinction matters: **the current agents are rule-based and template-drive
 
 Other demonstration paths include invoice previews, sales offers matched to mock interests, and human escalation. Campaign previews are suppressed for profiles without marketing consent.
 
-## Repository Structure
-
-```text
-.
-├── README.md
-├── architecture.drawio    # Editable HLD
-├── architecture.png       # HLD preview
-├── architecture.svg       # Vector HLD preview
-├── langgraph_agent.py     # Real StateGraph: nodes, edges, reducer, compile
-├── main.py                # FastAPI demo API + webhook verification
-├── postgres.py            # PostgreSQL DDL + synthetic profiles/offers
-├── requirements.txt       # Runtime dependencies
-├── requirements-dev.txt   # Optional pytest dependency
-├── tests/                 # LangGraph behavior checks
-└── .gitignore
-```
-
-## Optional Local Exploration
-
-```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS / Linux: source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-Send a fictional customer message:
-
-```bash
-curl -X POST http://127.0.0.1:8000/demo/message \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Minha internet está lenta"}'
-```
-
-Preview an offer (no outbound message is sent):
-
-```bash
-curl -X POST http://127.0.0.1:8000/demo/message \
-  -H "Content-Type: application/json" \
-  -d '{"message":"oferta","mode":"campaign_preview"}'
-```
-
-The selected fictional profile may differ on every demo request. These commands explain how the code is intended to run; they are **not a claim of live deployment or integration testing**.
-
-### Optional Unit Tests
-
-```bash
-pip install -r requirements-dev.txt
-pytest -q
-```
 
 These tests verify routing, node execution traces, invoice authorization gates, marketing opt-out handling, and the no-DB-access boundary. The test cases are provided for review; no CI or deployment is claimed.
 
-## Safety and Privacy Boundaries
 
-- **No real accounts:** names, numbers, prices, and invoices are mock fixtures, not customer records or current operator offers.
-- **No sender-to-account trust:** the WhatsApp webhook does not pick a random account or expose billing data.
-- **Demo-only billing authorization:** production access would require verified identity and explicit authorization.
-- **Consent-aware previews:** unsolicited promotional sending is not implemented.
-- **Human escalation:** unrecognized requests are marked for handoff, but no real ticket is created.
-- **LGPD-oriented future design:** a real system would require a lawful basis, minimization, retention controls, access auditing, and deletion procedures.
-
-## Prototype Scope and Roadmap
-
-**Included in this repository:** a compiled LangGraph StateGraph implementation, five conditional support paths, synthetic data, a PostgreSQL schema contract, a FastAPI demo route, webhook validation scaffolding, and an editable HLD.
-
-**Not included:** a live PostgreSQL connection, vector storage, embeddings, actual LLM calls, long-term persisted memory, outbound WhatsApp messaging, voice-call answering, real telecom APIs, CRM tickets, production deployment, or compliance certification. The cached catalog is **CAG-inspired context reuse**, not an implemented or measured LLM prompt cache.
-
-A realistic next iteration would add authenticated customer mapping, the official WhatsApp Business Platform, persistent conversation state, structured LLM classification, operator queueing, automated tests and observability.
-
----
-
-**Disclaimer:** This is an independent educational and portfolio project. It is **not affiliated with, endorsed by, or connected to Claro, Vivo, Meta, or any Brazilian telecom provider**. All customer data and offer examples are fictional.
