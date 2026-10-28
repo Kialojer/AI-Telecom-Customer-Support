@@ -1,4 +1,5 @@
 """Small LangGraph portfolio workflow. No database or external API access here."""
+#kiarash
 
 import re
 from functools import lru_cache
@@ -24,8 +25,6 @@ class AgentState(TypedDict, total=False):
 def classify(state: AgentState) -> dict:
     text = normalize("NFKD", state["message"].casefold())
     text = "".join(char for char in text if not combining(char))
-    # Whole words avoid false positives such as "contato" matching "conta".
-    # Support takes priority over billing and sales in mixed requests.
     def matches(phrases: tuple[str, ...]) -> bool:
         return any(re.search(r"\b" + re.escape(phrase).replace(r"\ ", r"\s+") + r"\b", text)
                    for phrase in phrases)
