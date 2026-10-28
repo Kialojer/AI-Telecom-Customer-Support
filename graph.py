@@ -1,11 +1,12 @@
 """Small LangGraph portfolio workflow. No database or external API access here."""
+
+kiarash torabi.n
+27/10/2026
+
 from functools import lru_cache
 from typing import Literal, TypedDict
 from unicodedata import combining, normalize
-
 from langgraph.graph import END, START, StateGraph
-
-
 class Customer(TypedDict):
     id: str
     name: str
@@ -14,7 +15,6 @@ class Customer(TypedDict):
     marketing_opt_in: bool
     invoice_total: str
 
-
 class AgentState(TypedDict, total=False):
     customer: Customer
     message: str
@@ -22,7 +22,6 @@ class AgentState(TypedDict, total=False):
     reply: str
     handoff: bool
     queue: str | None
-
 
 def classify(state: AgentState) -> dict:
     text = normalize("NFKD", state["message"].casefold())
@@ -33,10 +32,8 @@ def classify(state: AgentState) -> dict:
         intent = "billing"
     elif any(word in text for word in ("oferta", "desconto", "promocao", "plano novo")):
         intent = "offer"
-    else:
-        intent = "faq"
+    else:intent = "faq"
     return {"intent": intent}
-
 
 def support(state: AgentState) -> dict:
     return {
@@ -44,8 +41,6 @@ def support(state: AgentState) -> dict:
         "handoff": True,
         "queue": "customer_service",
     }
-
-
 def billing(state: AgentState) -> dict:
     customer = state["customer"]
     return {"reply": f"{customer['name']}, sua fatura ficticia e de R$ {customer['invoice_total']}. Nenhuma cobranca real foi consultada."}
@@ -56,7 +51,6 @@ OFFERS = (
     ("internet", "Oferta ficticia: upgrade de internet por R$ 29,90/mes."),
 )
 
-
 @lru_cache(maxsize=32)
 def cached_offer(interests: tuple[str, ...], catalogue_version: str) -> str:
     """Cache non-personal catalogue content only; change version on updates."""
@@ -65,17 +59,14 @@ def cached_offer(interests: tuple[str, ...], catalogue_version: str) -> str:
             return description
     return "Nao encontrei uma oferta ficticia adequada aos seus interesses."
 
-
 def offer(state: AgentState) -> dict:
     customer = state["customer"]
     if not customer["marketing_opt_in"]:
         return {"reply": "Seu perfil nao autoriza ofertas. Posso ajudar com seu plano ou atendimento."}
     return {"reply": cached_offer(tuple(sorted(customer["interests"])), CATALOGUE_VERSION)}
 
-
 def faq(state: AgentState) -> dict:
     return {"reply": f"Oi, {state['customer']['name']}! Seu plano ficticio e {state['customer']['plan']}. Posso ajudar com fatura, ofertas ou atendimento."}
-
 
 def build_graph():
     builder = StateGraph(AgentState)
@@ -88,9 +79,7 @@ def build_graph():
     {name: name for name in ("support", "billing", "offer", "faq")})
     return builder.compile()
 
-
 graph = build_graph()
-
 
 def respond(customer: Customer, message: str) -> AgentState:
     """Receive an already loaded customer snapshot; the graph never queries SQL."""
