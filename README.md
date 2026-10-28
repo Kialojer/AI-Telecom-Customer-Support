@@ -1,117 +1,109 @@
-<div align="center">
+# Telecom Agentic Portfolio
 
-# Agentic AI Telecom Customer Support
+An independent educational portfolio concept inspired by customer service in
+Brazilian telecommunications. Not affiliated with Claro or Vivo. All customers,
+plans, prices and bills are fictional. No credentials or personal phone numbers
+are included. Designed for GitHub and a CV; deployment is not required.
 
-### A context-aware, multi-agent customer service concept for Brazilian telecoms
+## Files
 
-**Python · LangGraph · FastAPI · PostgreSQL · WhatsApp Webhook Design**
+| File | Purpose |
+| --- | --- |
+| `architecture.drawio` | Editable diagrams.net high-level design (uncompressed XML) |
+| `graph.py` | LangGraph classification and FAQ, billing, offer and support paths |
+| `postgres.py` | Random synthetic customer snapshots, reference DDL, optional SQL lookup |
+| `main.py` | FastAPI demo ingress and typed JSON response |
+| `requirements.txt` | Dependency ranges; not a resolved lockfile |
+| `VERIFICATION.md` | Scope and results of static verification |
 
-**Portfolio Prototype** | **Portuguese (PT-BR)** | **Human Handoff**
+## Architecture and scope
 
-</div>
+1. The demo receives a message through `POST /webhook/demo`.
+2. `get_random_customer()` selects one of three fictional profiles.
+3. FastAPI passes that snapshot to the compiled LangGraph workflow.
+4. A small Portuguese keyword classifier routes to FAQ, billing, offers or support.
+5. The graph returns a reply and optional simulated handoff queue as JSON.
 
----
+There are no database calls inside graph nodes. The optional PostgreSQL adapter
+uses a parameterized lookup and is separate from the default synthetic flow.
+The DDL is embedded in `postgres.py`; nothing creates tables automatically.
 
-## The Problem
+The offer path checks marketing consent and uses a bounded application cache of
+preloaded catalogue text keyed by interests and catalogue version. It illustrates
+a CAG-inspired context reuse boundary. There is no LLM call, token accounting,
+provider prompt/KV cache, embedding, vector database or persistent chat memory.
+Consequently this demo does not claim measured token savings or generative AI.
+Changing `CATALOGUE_VERSION` invalidates prior cache keys; restart also clears it.
 
-Living in Brazil and using local telecom services gave me a first-hand view of a common customer experience: frequent calls, language friction, repeated explanations, and support conversations that do not always reach the right team quickly. Customers need a simpler way to ask about slow internet, bills, plans, and promotions—without navigating a rigid menu every time.
+Each request selects a new random profile. There is no conversation identity or
+cross-request history. Support handoff is a response flag, not a real ticket or
+agent transfer. Billing only reads the supplied fictional snapshot.
 
-**The design challenge:** How can one assistant understand the customer's request, use relevant context, and direct the conversation to a specialized support flow while keeping a human operator available?
+## Open the editable HLD
 
-## The Idea
+Visit https://app.diagrams.net/ and choose **File > Open From > Device**, then
+select `architecture.drawio`. Shapes, labels and connectors are editable.
+Solid arrows represent implemented demo paths. Dashed boxes/arrows describe
+optional or future integrations, including WhatsApp and PostgreSQL.
 
-I designed an **agentic customer-support architecture**, inspired by common use cases in the Brazilian telecom sector, including Claro and Vivo. A customer-facing WhatsApp experience is the intended future channel; this repository implements a **local demonstration API**, not a live WhatsApp integration.
+## Review without running
 
-The concept includes five specialist routes:
+Open the diagram and three Python files in GitHub or an editor. The delivered
+project has not been launched, deployed or connected to an external service.
+Static checks are described in `VERIFICATION.md`.
 
-- **Greeting:** start a natural conversation in Brazilian Portuguese.
-- **Technical support:** handle internet speed, Wi-Fi, and signal questions.
-- **Billing:** display an explicitly fictional invoice preview, subject to demo verification.
-- **Sales:** suggest a fictional plan or promotion using preloaded preferences and offers.
-- **Human handoff:** escalate unrecognized or sensitive requests rather than inventing answers.
+## Optional local demonstration (only if you later choose to run it)
 
-The focus is **understandable orchestration, explicit state, and clear system boundaries**, not infrastructure complexity.
+Use Python 3.11+ in a virtual environment. From this folder:
 
-## High-Level Design (HLD)
-
-```mermaid
-flowchart TD
-    W["WhatsApp webhook (concept / validation only)"] --> V["FastAPI /webhook: verify + acknowledge"]
-    M["Demo JSON message"] --> A["FastAPI /demo/message"]
-    C["Synthetic customer + curated offers"] --> E["Preload graph state"]
-    A --> E
-    E --> R["LangGraph: intent classification"]
-    R --> G["Greeting Agent"]
-    R --> T["Technical Support Agent"]
-    R --> B["Billing Agent"]
-    R --> S["Sales Agent"]
-    R --> H["Human Handoff Agent"]
-    G --> Q["Response review"]
-    T --> Q
-    B --> Q
-    S --> Q
-    H --> Q
-    Q --> O["PT-BR demo response + handoff flag"]
+```sh
+python -m venv .venv
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-**[View the architecture diagram](architecture.png)** · **[Edit HLD in diagrams.net](architecture.drawio)**
+Open http://127.0.0.1:8000/docs and send this body to `POST /webhook/demo`:
 
-> **Important design decision:** LangGraph does not query the database. An API-boundary helper randomly selects one **fictional customer** and loads a limited offer catalog *before* the graph starts. A production integration would use authenticated identity resolution instead of random selection.
-
-## Technology Stack
-
-| Component | Technology | What it demonstrates |
-|---|---|---|
-| Agent orchestration | **LangGraph** | Typed state, an Annotated list reducer, conditional edges, specialist nodes, compile/invoke |
-| API | **FastAPI + Pydantic** | Validated request and response models, independent demo endpoint |
-| Messaging boundary | **Webhook design** | Meta verification challenge and HMAC-SHA256 signature validation; inbound messages are only acknowledged |
-| Relational data design | **PostgreSQL** | DDL for customers, authorized contacts, interactions, and offers |
-| Personalization | **Curated offer context** | A small preloaded product catalog (CAG-inspired), without repeated lookups inside agents |
-| Conversation context | **Synthetic memory summaries** | Previously-known context included in the agent state; no embedding or persistence |
-| Language | **PT-BR** | Customer-facing Portuguese response examples |
-
-## LangGraph Workflow: Real Graph API
-
-The orchestration is implemented in **[`langgraph_agent.py`](langgraph_agent.py)**, not as a pseudo-code illustration. It uses:
-
-- `StateGraph(AgentState)` for a single typed shared state.
-- `add_node()` for intent classification, five specialist handlers, and final response review.
-- `add_conditional_edges()` to select exactly one specialist at runtime.
-- `START` and `END` to explicitly define graph entry and termination.
-- `Annotated[list[str], operator.add]` to accumulate a reproducible node execution trace.
-- `compile()` and `AGENT_GRAPH.invoke()` for graph construction and invocation.
-
-```python
-builder = StateGraph(AgentState)
-builder.add_node("classify", classify)
-# ... five specialist nodes and a final review node are registered ...
-builder.add_edge(START, "classify")
-builder.add_conditional_edges("classify", route, {"greeting": "greeting", "technical": "technical", "billing": "billing", "sales": "sales", "human": "human"})
-builder.add_edge("review", END)
-AGENT_GRAPH = builder.compile()
+```json
+{"message": "Minha internet esta lenta, preciso de um atendente"}
 ```
 
-The complete implementation lives in the Python file. In this small educational prototype, each specialist is a LangGraph node with deterministic behavior; an actual LLM, vector memory, and production integrations are deliberately out of scope.
+Expected route: `support`, `handoff: true`, `queue: "customer_service"`.
+Try `Quero ver minha fatura` for billing, `Tem alguma oferta?` for an offer
+(or consent refusal), and `Ola` for the FAQ introduction.
 
-## Message Flow
+The dependency ranges express intended compatibility, not tested runtime
+versions. No dependencies were installed and no live runtime was tested during
+delivery verification.
 
-1. **Receive** a sample message through `POST /demo/message`.
-2. **Select** a random synthetic customer and inject a bounded set of mock offers into state.
-3. **Classify** intent using a **deterministic keyword router** that stands in for a future LLM classifier.
-4. **Route** the message to the corresponding specialized LangGraph node.
-5. **Review** the response and return a Portuguese answer, intent, handoff flag, and a graph-node trace.
+## Optional PostgreSQL integration
 
-This distinction matters: **the current agents are rule-based and template-driven**. The repository does not make an OpenAI call or claim a fully autonomous LLM agent.
+If implemented later, create `portfolio_customers` using `SCHEMA_SQL`, insert
+synthetic rows, set `DATABASE_URL` privately, and call
+`load_customer_from_postgres(customer_id)` before `respond(...)`. An unknown ID
+returns `None`, which the caller must handle. Never commit connection strings.
+The adapter is not exposed through the HTTP demo endpoint.
 
-### Example
+## Future WhatsApp integration
 
-**Customer:** `Minha internet está lenta.`
+The JSON demo endpoint is not a Meta WhatsApp Cloud API webhook. An adapter
+would need actual payload parsing, verification challenge handling, signature
+validation, authenticated customer resolution, event deduplication and a send
+API implementation. Keep those responsibilities outside the graph. Real billing
+requires verified identity and authorization; the random-profile demo must
+remain restricted to fictional data.
 
-**Illustrative route:** `technical` → clarify whether Wi-Fi or all devices are affected → return a troubleshooting prompt in PT-BR, using the customer's synthetic context summary.
+## Design references
 
-Other demonstration paths include invoice previews, sales offers matched to mock interests, and human escalation. Campaign previews are suppressed for profiles without marketing consent.
+- LangGraph graph API: https://reference.langchain.com/python/langgraph/graph
+- FastAPI request bodies: https://fastapi.tiangolo.com/tutorial/body/
+- Psycopg usage: https://www.psycopg.org/psycopg3/docs/basic/usage.html
+- Psycopg dictionary rows: https://www.psycopg.org/psycopg3/docs/advanced/rows.html
 
+## CV wording (Portuguese)
 
-These tests verify routing, node execution traces, invoice authorization gates, marketing opt-out handling, and the no-DB-access boundary. The test cases are provided for review; no CI or deployment is claimed.
-
-
+Prototipo de portfolio de atendimento para telecomunicacoes com LangGraph,
+FastAPI e adaptador PostgreSQL: roteamento por intencao, contexto de cliente
+simulado, cache de ofertas e encaminhamento simulado para atendimento humano.
