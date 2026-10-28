@@ -3,7 +3,7 @@
 An independent educational portfolio concept inspired by customer service in
 Brazilian telecommunications. Not affiliated with Claro or Vivo. All customers,
 plans, prices and bills are fictional. No credentials or personal phone numbers
-are included. Designed for GitHub and a CV; deployment is not required.
+are included.
 
 ## Files
 
