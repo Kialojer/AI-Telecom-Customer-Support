@@ -1,68 +1,79 @@
-# Telecom Agentic Portfolio
+# Portfólio de Atendimento com Agentes para Telecomunicações
 
-An independent educational portfolio concept inspired by customer service in
-Brazilian telecommunications. Not affiliated with Claro or Vivo. All customers,
-plans, prices and bills are fictional. No credentials or personal phone numbers
-are included. Designed for GitHub and a CV; deployment is not required.
+Projeto independente de portfólio educacional inspirado no atendimento ao cliente
+no setor brasileiro de telecomunicações. Sem vínculo com a Claro ou a Vivo. Todos
+os clientes, planos, preços e valores de faturas são fictícios. O projeto não inclui
+credenciais nem números de telefone pessoais. Foi desenvolvido para apresentação
+no GitHub e no currículo; a implantação não é necessária.
 
-## Files
+## Arquivos
 
-| File | Purpose |
+| Arquivo | Finalidade |
 | --- | --- |
-| `architecture.drawio` | Editable diagrams.net high-level design (uncompressed XML) |
-| `graph.py` | LangGraph classification and FAQ, billing, offer and support paths |
-| `postgres.py` | Random synthetic customer snapshots, reference DDL, optional SQL lookup |
-| `main.py` | FastAPI demo ingress and typed JSON response |
-| `requirements.txt` | Dependency ranges; not a resolved lockfile |
-| `VERIFICATION.md` | Verified runtime versions, results and remaining limitations |
-| `tests/test_integration.py` | HTTP-to-graph integration, consent, adapter contract and HLD checks |
-| `requirements-dev.txt` | Runtime dependencies plus HTTP test client |
-| `.github/workflows/tests.yml` | Integration checks on Python 3.11 and 3.13 |
+| `architecture.drawio` | Arquitetura de alto nível (HLD) editável no diagrams.net, em XML sem compressão |
+| `graph.py` | Classificação e fluxos de perguntas frequentes, faturamento, ofertas e suporte com LangGraph |
+| `postgres.py` | Perfis fictícios aleatórios de clientes, DDL de referência e consulta SQL opcional |
+| `main.py` | Entrada da demonstração com FastAPI e resposta JSON tipada |
+| `requirements.txt` | Faixas de versões das dependências; não é um arquivo de versões fixadas (lockfile) |
+| `VERIFICATION.md` | Versões verificadas em execução, resultados e limitações restantes |
+| `tests/test_integration.py` | Testes de integração da API HTTP com o grafo, consentimento, contrato do adaptador e HLD |
+| `requirements-dev.txt` | Dependências de execução e cliente HTTP para testes |
+| `.github/workflows/tests.yml` | Verificações de integração com Python 3.11 e 3.13 |
 
-## Architecture and scope
+## Arquitetura e escopo
 
-1. The demo receives a message through `POST /webhook/demo`.
-2. `get_random_customer()` selects one of three fictional profiles.
-3. FastAPI passes that snapshot to the compiled LangGraph workflow.
-4. A small Portuguese keyword classifier routes to FAQ, billing, offers or support.
-   Matching ignores accents and case, uses word boundaries, and tolerates repeated
-   whitespace in phrases. Priority is support, then billing, then offers, then FAQ.
-5. The graph returns a reply and optional simulated handoff queue as JSON.
+1. A demonstração recebe uma mensagem por `POST /webhook/demo`.
+2. `get_random_customer()` seleciona um dos três perfis fictícios.
+3. O FastAPI passa os dados desse perfil ao fluxo compilado do LangGraph.
+4. Um classificador simples por palavras-chave em português direciona a mensagem
+   para perguntas frequentes, faturamento, ofertas ou suporte. A correspondência
+   ignora acentos e diferenças entre maiúsculas e minúsculas, respeita os limites
+   das palavras e aceita espaços em branco repetidos nas expressões. A prioridade
+   é suporte, depois faturamento, ofertas e, por último, perguntas frequentes.
+5. O grafo retorna uma resposta e, quando aplicável, uma fila simulada de
+   encaminhamento para atendimento humano, em JSON.
 
-There are no database calls inside graph nodes. The optional PostgreSQL adapter
-uses a parameterized lookup and is separate from the default synthetic flow.
-The DDL is embedded in `postgres.py`; nothing creates tables automatically.
+Os nós do grafo não fazem consultas ao banco de dados. O adaptador opcional para
+PostgreSQL usa uma consulta parametrizada e fica separado do fluxo padrão com
+dados fictícios. O DDL está definido em `postgres.py`; nenhuma tabela é criada
+automaticamente.
 
-The offer path requires explicit boolean `True` marketing consent on every request,
-before accessing the catalogue cache. Missing or malformed consent is refused. It
-uses a bounded application cache of
-preloaded catalogue text keyed by interests and catalogue version. It illustrates
-a CAG-inspired context reuse boundary. There is no LLM call, token accounting,
-provider prompt/KV cache, embedding, vector database or persistent chat memory.
-Consequently this demo does not claim measured token savings or generative AI.
-Changing `CATALOGUE_VERSION` invalidates prior cache keys; restart also clears it.
+O fluxo de ofertas exige consentimento explícito de marketing, com o valor
+booleano `True`, em cada requisição, antes de acessar o cache do catálogo.
+Consentimento ausente ou em formato inválido impede a apresentação de ofertas.
+O fluxo usa um cache limitado na aplicação para textos de catálogo previamente
+carregados, com chaves formadas pelos interesses e pela versão do catálogo. Isso
+ilustra uma forma de reutilização de contexto inspirada em CAG. Não há chamadas
+a LLMs, contagem de tokens, cache de prompts/KV de provedores, embeddings, banco
+vetorial nem memória persistente de conversas. Portanto, esta demonstração não
+apresenta economia medida de tokens nem geração de conteúdo por IA. Alterar
+`CATALOGUE_VERSION` faz com que novas chaves de cache sejam usadas; reiniciar a
+aplicação também limpa o cache.
 
-Each request selects a new random profile. There is no conversation identity or
-cross-request history. Support handoff is a response flag, not a real ticket or
-agent transfer. Billing only reads the supplied fictional snapshot.
+Cada requisição seleciona um novo perfil aleatório. Não há identificação da
+conversa nem histórico entre requisições. O encaminhamento do suporte é indicado
+por um campo na resposta; não cria um chamado nem transfere a conversa para um
+atendente real. O faturamento apenas lê os dados fictícios do perfil recebido.
 
-## Open the editable HLD
+## Abrir o HLD editável
 
-Visit https://app.diagrams.net/ and choose **File > Open From > Device**, then
-select `architecture.drawio`. Shapes, labels and connectors are editable.
-Solid arrows represent implemented demo paths. Dashed boxes/arrows describe
-optional or future integrations, including WhatsApp and PostgreSQL.
+Acesse [diagrams.net](https://app.diagrams.net/) e escolha
+**File > Open From > Device** (Arquivo > Abrir de > Dispositivo). Em seguida,
+selecione `architecture.drawio`. As formas, os rótulos e os conectores são editáveis.
+Setas contínuas representam os fluxos implementados na demonstração. Caixas e
+setas tracejadas representam integrações opcionais ou futuras, incluindo WhatsApp
+e PostgreSQL.
 
-## Review without running
+## Revisar sem executar
 
-Open the diagram and three Python files in GitHub or an editor. The API and
-compiled graph have been exercised in-process with synthetic data. No deployment,
-live PostgreSQL connection or WhatsApp integration has been verified.
-See `VERIFICATION.md` for the exact scope.
+Abra o diagrama e os três arquivos Python no GitHub ou em um editor. A API e o
+grafo compilado foram testados no mesmo processo, com dados fictícios. Não foram
+verificadas a implantação, uma conexão real com PostgreSQL ou a integração com
+WhatsApp. Consulte `VERIFICATION.md` para conhecer o escopo exato das verificações.
 
-## Local demonstration
+## Demonstração local
 
-Use Python 3.11+ in a virtual environment. From this folder:
+Use Python 3.11 ou superior em um ambiente virtual. Na pasta do projeto:
 
 ```sh
 python -m venv .venv
@@ -72,64 +83,72 @@ python -m pip install -r requirements.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000/docs and send this body to `POST /webhook/demo`:
+Abra [a documentação local da API](http://127.0.0.1:8000/docs) e envie este corpo
+para `POST /webhook/demo`:
 
 ```json
 {"message": "Minha internet esta lenta, preciso de um atendente"}
 ```
 
-Expected route: `support`, `handoff: true`, `queue: "customer_service"`.
-Try `Quero ver minha fatura` for billing, `Tem alguma oferta?` for an offer
-(or consent refusal), and `Ola` for the FAQ introduction.
+Rota esperada: `support`, com `handoff: true` e `queue: "customer_service"`.
+Experimente `Quero ver minha fatura` para faturamento, `Tem alguma oferta?` para
+uma oferta (ou recusa por falta de consentimento) e `Ola` para a apresentação de
+perguntas frequentes.
 
-The dependency ranges express intended compatibility, not a lockfile or a claim
-that every version combination works. Exact tested versions are in `VERIFICATION.md`.
+As faixas de versões das dependências indicam a compatibilidade pretendida;
+não constituem um lockfile nem garantem que todas as combinações de versões
+funcionem. As versões exatas testadas estão em `VERIFICATION.md`.
 
-## Run integration checks
+## Executar as verificações de integração
 
 ```sh
 python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 ```
 
-The tests use FastAPI's in-process HTTP client and the real compiled LangGraph.
-They select synthetic profiles deterministically for billing, sales and consent
-assertions; a separate test exercises the actual random loader. PostgreSQL
-contract checks mock only the connection, so no database credentials are needed.
-CI runs this command on Python 3.11 and 3.13 after a fresh dependency install.
+Os testes usam o cliente HTTP do FastAPI no mesmo processo e o grafo real compilado
+do LangGraph. Para verificar faturamento, vendas e consentimento, selecionam os
+perfis fictícios de forma determinística; um teste separado verifica a função
+real de seleção aleatória. Os testes de contrato do adaptador PostgreSQL simulam
+apenas a conexão, portanto não exigem credenciais de banco de dados. A integração
+contínua (CI) executa esse comando com Python 3.11 e 3.13 após uma nova instalação
+das dependências.
 
-Support (including technical issues, cancellation and human-agent requests)
-always returns a simulated handoff. `offer` is the sales intent in the JSON API.
-Consent is supplied by the customer snapshot; the API does not accept or persist
-consent changes. The keyword classifier is deliberately limited and is not an
-unrestricted language-understanding system.
+O suporte, incluindo problemas técnicos, cancelamento e pedidos para falar com
+um atendente, sempre retorna um encaminhamento simulado. Na API JSON, `offer` é
+a intenção correspondente a vendas. O consentimento vem dos dados do perfil do
+cliente; a API não aceita nem persiste alterações de consentimento. O classificador
+por palavras-chave é intencionalmente limitado e não interpreta livremente a
+linguagem natural.
 
-## Optional PostgreSQL integration
+## Integração opcional com PostgreSQL
 
-If implemented later, create `portfolio_customers` using `SCHEMA_SQL`, insert
-synthetic rows, set `DATABASE_URL` privately, and call
-`load_customer_from_postgres(customer_id)` before `respond(...)`. An unknown ID
-returns `None`, which the caller must handle. Never commit connection strings.
-The adapter is not exposed through the HTTP demo endpoint.
+Para integrar o banco posteriormente, crie `portfolio_customers` usando
+`SCHEMA_SQL`, insira registros fictícios, configure `DATABASE_URL` de forma privada
+e chame `load_customer_from_postgres(customer_id)` antes de `respond(...)`.
+Um identificador desconhecido retorna `None`, e o código que chama a função deve
+tratar esse caso. Nunca inclua strings de conexão nos commits. O adaptador não
+está exposto pelo endpoint HTTP da demonstração.
 
-## Future WhatsApp integration
+## Integração futura com WhatsApp
 
-The JSON demo endpoint is not a Meta WhatsApp Cloud API webhook. An adapter
-would need actual payload parsing, verification challenge handling, signature
-validation, authenticated customer resolution, event deduplication and a send
-API implementation. Keep those responsibilities outside the graph. Real billing
-requires verified identity and authorization; the random-profile demo must
-remain restricted to fictional data.
+O endpoint JSON da demonstração não é um webhook da API do WhatsApp Cloud da Meta.
+Um adaptador precisaria interpretar os payloads reais, responder ao desafio de
+verificação, validar assinaturas, identificar clientes autenticados, eliminar
+eventos duplicados e implementar o envio de mensagens pela API. Mantenha essas
+responsabilidades fora do grafo. A consulta de faturas reais exige identidade
+verificada e autorização; a demonstração com perfis aleatórios deve continuar
+restrita a dados fictícios.
 
-## Design references
+## Referências de projeto
 
-- LangGraph graph API: https://reference.langchain.com/python/langgraph/graph
-- FastAPI request bodies: https://fastapi.tiangolo.com/tutorial/body/
-- Psycopg usage: https://www.psycopg.org/psycopg3/docs/basic/usage.html
-- Psycopg dictionary rows: https://www.psycopg.org/psycopg3/docs/advanced/rows.html
+- [API de grafos do LangGraph](https://reference.langchain.com/python/langgraph/graph)
+- [Corpos de requisição no FastAPI](https://fastapi.tiangolo.com/tutorial/body/)
+- [Uso básico do Psycopg](https://www.psycopg.org/psycopg3/docs/basic/usage.html)
+- [Linhas como dicionários no Psycopg](https://www.psycopg.org/psycopg3/docs/advanced/rows.html)
 
-## CV wording (Portuguese)
+## Texto sugerido para o currículo
 
-Prototipo de portfolio de atendimento para telecomunicacoes com LangGraph,
-FastAPI e adaptador PostgreSQL: roteamento por intencao, contexto de cliente
+Protótipo de portfólio de atendimento para telecomunicações com LangGraph,
+FastAPI e adaptador PostgreSQL: roteamento por intenção, contexto de cliente
 simulado, cache de ofertas e encaminhamento simulado para atendimento humano.
