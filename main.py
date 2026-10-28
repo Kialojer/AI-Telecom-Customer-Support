@@ -1,18 +1,11 @@
 """FastAPI demo ingress. It does not send WhatsApp messages or run a server."""
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
-
 from graph import respond
 from postgres import get_random_customer
-
-
 app = FastAPI(title="Telecom Agentic Portfolio", version="1.0.0")
-
-
 class DemoMessage(BaseModel):
     message: str = Field(min_length=1, max_length=2000, pattern=r"\S")
-
-
 class DemoReply(BaseModel):
     demo: bool = True
     customer_id: str
@@ -21,11 +14,9 @@ class DemoReply(BaseModel):
     handoff: bool
     queue: str | None
 
-
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "mode": "synthetic-demo"}
-
 
 @app.post("/webhook/demo", response_model=DemoReply)
 def demo_webhook(payload: DemoMessage) -> DemoReply:
