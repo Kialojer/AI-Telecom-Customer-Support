@@ -3,7 +3,7 @@
 An independent educational portfolio concept inspired by customer service in
 Brazilian telecommunications. Not affiliated with Claro or Vivo. All customers,
 plans, prices and bills are fictional. No credentials or personal phone numbers
-are included.
+are included. Designed for GitHub and a CV; deployment is not required.
 
 ## Files
 
@@ -14,7 +14,10 @@ are included.
 | `postgres.py` | Random synthetic customer snapshots, reference DDL, optional SQL lookup |
 | `main.py` | FastAPI demo ingress and typed JSON response |
 | `requirements.txt` | Dependency ranges; not a resolved lockfile |
-| `VERIFICATION.md` | Scope and results of static verification |
+| `VERIFICATION.md` | Verified runtime versions, results and remaining limitations |
+| `tests/test_integration.py` | HTTP-to-graph integration, consent, adapter contract and HLD checks |
+| `requirements-dev.txt` | Runtime dependencies plus HTTP test client |
+| `.github/workflows/tests.yml` | Integration checks on Python 3.11 and 3.13 |
 
 ## Architecture and scope
 
@@ -22,13 +25,17 @@ are included.
 2. `get_random_customer()` selects one of three fictional profiles.
 3. FastAPI passes that snapshot to the compiled LangGraph workflow.
 4. A small Portuguese keyword classifier routes to FAQ, billing, offers or support.
+   Matching ignores accents and case, uses word boundaries, and tolerates repeated
+   whitespace in phrases. Priority is support, then billing, then offers, then FAQ.
 5. The graph returns a reply and optional simulated handoff queue as JSON.
 
 There are no database calls inside graph nodes. The optional PostgreSQL adapter
 uses a parameterized lookup and is separate from the default synthetic flow.
 The DDL is embedded in `postgres.py`; nothing creates tables automatically.
 
-The offer path checks marketing consent and uses a bounded application cache of
+The offer path requires explicit boolean `True` marketing consent on every request,
+before accessing the catalogue cache. Missing or malformed consent is refused. It
+uses a bounded application cache of
 preloaded catalogue text keyed by interests and catalogue version. It illustrates
 a CAG-inspired context reuse boundary. There is no LLM call, token accounting,
 provider prompt/KV cache, embedding, vector database or persistent chat memory.
@@ -48,11 +55,12 @@ optional or future integrations, including WhatsApp and PostgreSQL.
 
 ## Review without running
 
-Open the diagram and three Python files in GitHub or an editor. The delivered
-project has not been launched, deployed or connected to an external service.
-Static checks are described in `VERIFICATION.md`.
+Open the diagram and three Python files in GitHub or an editor. The API and
+compiled graph have been exercised in-process with synthetic data. No deployment,
+live PostgreSQL connection or WhatsApp integration has been verified.
+See `VERIFICATION.md` for the exact scope.
 
-## Optional local demonstration (only if you later choose to run it)
+## Local demonstration
 
 Use Python 3.11+ in a virtual environment. From this folder:
 
@@ -74,9 +82,27 @@ Expected route: `support`, `handoff: true`, `queue: "customer_service"`.
 Try `Quero ver minha fatura` for billing, `Tem alguma oferta?` for an offer
 (or consent refusal), and `Ola` for the FAQ introduction.
 
-The dependency ranges express intended compatibility, not tested runtime
-versions. No dependencies were installed and no live runtime was tested during
-delivery verification.
+The dependency ranges express intended compatibility, not a lockfile or a claim
+that every version combination works. Exact tested versions are in `VERIFICATION.md`.
+
+## Run integration checks
+
+```sh
+python -m pip install -r requirements-dev.txt
+python -m unittest discover -s tests -v
+```
+
+The tests use FastAPI's in-process HTTP client and the real compiled LangGraph.
+They select synthetic profiles deterministically for billing, sales and consent
+assertions; a separate test exercises the actual random loader. PostgreSQL
+contract checks mock only the connection, so no database credentials are needed.
+CI runs this command on Python 3.11 and 3.13 after a fresh dependency install.
+
+Support (including technical issues, cancellation and human-agent requests)
+always returns a simulated handoff. `offer` is the sales intent in the JSON API.
+Consent is supplied by the customer snapshot; the API does not accept or persist
+consent changes. The keyword classifier is deliberately limited and is not an
+unrestricted language-understanding system.
 
 ## Optional PostgreSQL integration
 

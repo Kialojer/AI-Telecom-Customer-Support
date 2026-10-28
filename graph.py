@@ -1,8 +1,6 @@
 """Small LangGraph portfolio workflow. No database or external API access here."""
 
-kiarash torabi.n
-27/10/2026
-
+import re
 from functools import lru_cache
 from typing import Literal, TypedDict
 from unicodedata import combining, normalize
@@ -26,13 +24,23 @@ class AgentState(TypedDict, total=False):
 def classify(state: AgentState) -> dict:
     text = normalize("NFKD", state["message"].casefold())
     text = "".join(char for char in text if not combining(char))
-    if any(word in text for word in ("lenta", "lento", "sem internet", "tecnico", "atendente", "cancelar")):
+    # Whole words avoid false positives such as "contato" matching "conta".
+    # Support takes priority over billing and sales in mixed requests.
+    def matches(phrases: tuple[str, ...]) -> bool:
+        return any(re.search(r"\b" + re.escape(phrase).replace(r"\ ", r"\s+") + r"\b", text)
+                   for phrase in phrases)
+
+    if matches(("lenta", "lento", "sem internet", "tecnico", "atendente",
+                "cancelar", "cancelamento", "suporte", "conexao", "nao funciona",
+                "falar com humano", "falar com uma pessoa")):
         intent = "support"
-    elif any(word in text for word in ("fatura", "boleto", "conta", "pagamento")):
+    elif matches(("fatura", "boleto", "conta", "pagamento", "cobranca")):
         intent = "billing"
-    elif any(word in text for word in ("oferta", "desconto", "promocao", "plano novo")):
+    elif matches(("oferta", "ofertas", "desconto", "promocao", "plano novo",
+                  "novo plano", "contratar", "comprar", "vendas")):
         intent = "offer"
-    else:intent = "faq"
+    else:
+        intent = "faq"
     return {"intent": intent}
 
 def support(state: AgentState) -> dict:
@@ -61,7 +69,7 @@ def cached_offer(interests: tuple[str, ...], catalogue_version: str) -> str:
 
 def offer(state: AgentState) -> dict:
     customer = state["customer"]
-    if not customer["marketing_opt_in"]:
+    if customer.get("marketing_opt_in") is not True:
         return {"reply": "Seu perfil nao autoriza ofertas. Posso ajudar com seu plano ou atendimento."}
     return {"reply": cached_offer(tuple(sorted(customer["interests"])), CATALOGUE_VERSION)}
 

@@ -72,7 +72,7 @@
         <mxCell id="return1" edge="1" parent="1" source="billing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;fontSize=12;" target="output" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="route2" edge="1" parent="1" source="router" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;fontSize=12;" target="offers" value="offers">
+        <mxCell id="route2" edge="1" parent="1" source="router" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;fontSize=12;" target="offers" value="offer">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="return2" edge="1" parent="1" source="offers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;fontSize=12;" target="output" value="">
