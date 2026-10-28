@@ -1,4 +1,5 @@
 """FastAPI demo ingress. It does not send WhatsApp messages or run a server."""
+#kiarash
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from graph import respond
@@ -12,7 +13,7 @@ class DemoReply(BaseModel):
     intent: str
     reply: str
     handoff: bool
-    queue: str | None
+    queue: str
 
 @app.get("/health")
 def health() -> dict:
