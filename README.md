@@ -55,14 +55,48 @@ conversa nem histórico entre requisições. O encaminhamento do suporte é indi
 por um campo na resposta; não cria um chamado nem transfere a conversa para um
 atendente real. O faturamento apenas lê os dados fictícios do perfil recebido.
 
-## Abrir o HLD editável
+## Arquitetura de alto nível (HLD)
 
-Acesse [diagrams.net](https://app.diagrams.net/) e escolha
-**File > Open From > Device** (Arquivo > Abrir de > Dispositivo). Em seguida,
-selecione `architecture.drawio`. As formas, os rótulos e os conectores são editáveis.
-Setas contínuas representam os fluxos implementados na demonstração. Caixas e
-setas tracejadas representam integrações opcionais ou futuras, incluindo WhatsApp
-e PostgreSQL.
+```mermaid
+flowchart TB
+    client["Cliente da demonstração<br/>Mensagem JSON"]
+    api["main.py · FastAPI<br/>POST /webhook/demo<br/>Validação da mensagem"]
+    profiles["postgres.py<br/>Seleção de um perfil fictício por requisição"]
+    router["graph.py · LangGraph<br/>START → Classificação por palavras-chave"]
+
+    client --> api
+    api --> profiles
+    profiles -->|"Perfil do cliente + mensagem"| router
+
+    router -->|"faq"| faq["Perguntas frequentes<br/>Apresentação do plano"]
+    router -->|"billing"| billing["Faturamento<br/>Fatura fictícia do perfil"]
+    router -->|"offer"| consent{"Consentimento explícito<br/>de marketing?"}
+    router -->|"support"| support["Suporte<br/>Encaminhamento humano simulado<br/>Fila: customer_service"]
+
+    consent -->|"Sim"| offers["Ofertas<br/>Consulta ao catálogo por interesses"]
+    consent -->|"Não"| refusal["Resposta sem oferta<br/>Consentimento não autorizado"]
+    cache["Catálogo pré-carregado<br/>Cache em memória: até 32 entradas<br/>Chave: interesses + versão"] --> offers
+
+    faq --> output["END → Resposta JSON<br/>reply · intent · handoff · queue"]
+    billing --> output
+    offers --> output
+    refusal --> output
+    support --> output
+
+    whatsapp["Futuro adaptador WhatsApp<br/>Verificação, autenticação e envio"] -.-> api
+    sql["Adaptador PostgreSQL opcional<br/>Consulta parametrizada por ID<br/>Fora do endpoint de demonstração"] -.-> profiles
+
+    classDef optional fill:#fff2cc,stroke:#8a6d3b,stroke-dasharray:5 5,color:#332700;
+    classDef catalogue fill:#e1d5e7,stroke:#8064a2,color:#291b35;
+    class whatsapp,sql optional;
+    class cache catalogue;
+```
+
+As setas contínuas representam o fluxo implementado. As setas tracejadas indicam
+integrações opcionais ou futuras. O grafo recebe os dados do perfil e não consulta
+o banco de dados. Não há LLM, memória persistente, cobrança real ou transferência
+para um atendente real. A versão editável no diagrams.net continua disponível no
+arquivo `architecture.drawio`.
 
 ## Revisar sem executar
 
