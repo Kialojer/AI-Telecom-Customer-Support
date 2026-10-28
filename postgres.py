@@ -1,11 +1,8 @@
-"""Synthetic demo snapshots and an optional PostgreSQL adapter."""
+
 import os
 import random
 from copy import deepcopy
-
 from graph import Customer
-
-
 DEMO_CUSTOMERS: list[Customer] = [
     {"id": "demo-ana", "name": "Ana", "plan": "Fibra 500 Demo", "interests": ["streaming"],
      "marketing_opt_in": True, "invoice_total": "99,90"},
@@ -15,7 +12,6 @@ DEMO_CUSTOMERS: list[Customer] = [
      "marketing_opt_in": False, "invoice_total": "79,90"},
 ]
 
-# Reference DDL only; never executed at import or application startup.
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS portfolio_customers (
     id TEXT PRIMARY KEY,
@@ -26,12 +22,9 @@ CREATE TABLE IF NOT EXISTS portfolio_customers (
     invoice_total NUMERIC(10,2) NOT NULL CHECK (invoice_total >= 0)
 );
 """
-
-
 def get_random_customer() -> Customer:
     """Pick a synthetic customer once per request, before entering the graph."""
     return deepcopy(random.choice(DEMO_CUSTOMERS))
-
 
 def load_customer_from_postgres(customer_id: str) -> Customer | None:
     """Optional explicit lookup, outside LangGraph; no random real-user lookup.
@@ -41,7 +34,6 @@ def load_customer_from_postgres(customer_id: str) -> Customer | None:
     """
     import psycopg
     from psycopg.rows import dict_row
-
     with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row, connect_timeout=5) as conn:
         row = conn.execute(
             "SELECT id, name, plan, interests, marketing_opt_in, invoice_total "
